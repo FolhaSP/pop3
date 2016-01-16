@@ -1,0 +1,7 @@
+{
+    "name": "Webysther/pop3",
+    "description": "POP3 Client",
+    "suggest": {
+    	"phpclasses/pop3": ">=1.17"
+    }
+}
