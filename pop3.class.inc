@@ -425,8 +425,9 @@ class POP3 {
         }
         // Get Header
         $i = "0";
-        $response = "<HEADER> \r\n";
-        while(!eregi("^\.\r\n",$response))
+        $response = "";
+        while(!preg_match("/^\.\r\n/i",$response))
+
         {
             if(substr($response,0,4) == "\r\n") break;
             $output[$i] = $response;
@@ -437,18 +438,18 @@ class POP3 {
         {
             $response = $this->_getnextstring();
         }
-        $output[$i++] = "</HEADER> \r\n";
+        
+        $output[$i++] = "";
         // Get $lines
         if( $lines != "0" )
         {
-            $response = "<MESSAGE> \r\n";
+            $response = "";
             for($g = 0;$g < $lines; $g++){
-                if(eregi("^\.\r\n",$response)) break;
+                if(preg_match("/^\.\r\n/i",$response)) break;
                 $output[$i] = $response;
                 $i++;
                 $response = $this->_getnextstring();
             }
-            $output[$i] = "</MESSAGE> \r\n";
         }
 
         if(!$this->_logging("Complete.")) return FALSE;
@@ -482,44 +483,43 @@ class POP3 {
         if(!$this->_logging($response)) return FALSE;
 
         if ($qmailer == TRUE)
-	{
-		if(substr($response,0,1) != '.') 
-		{
-			$this->error = "POP3 get_mail() - Error: ".$response;
-			return FALSE;
-		}
-	}
-	else 
-	{
-		if(substr($response,0,3) != "+OK") 
-		{
-			$this->error = "POP3 get_mail() - Error: ".$response;
-			return FALSE;
-		}
-	}
-	
+    {
+        if(substr($response,0,1) != '.')
+        {
+            $this->error = "POP3 get_mail() - Error: ".$response;
+            return FALSE;
+        }
+    }
+    else
+    {
+        if(substr($response,0,3) != "+OK")
+        {
+            $this->error = "POP3 get_mail() - Error: ".$response;
+            return FALSE;
+        }
+    }
+
         // Get MAIL !!!
         $i = "0";
-        $response = "<HEADER> \r\n";
-        while(!eregi("^\.\r\n",$response))
+        $response = "";
+        while(!preg_match("/^\.\r\n/i",$response))
         {
             if(substr($response,0,4) == "\r\n") break;
             $output[$i] = $response;
             $i++;
             $response = $this->_getnextstring();
         }
-        $output[$i++] = "</HEADER> \r\n";
+        $output[$i++] = "\r\n";
+        $response = "";
 
-        $response = "<MESSAGE> \r\n";
-
-        while(!eregi("^\.\r\n",$response))
+        while(!preg_match("/^\.\r\n/i",$response))
         {
             $output[$i] = $response;
             $i++;
             $response = $this->_getnextstring();
         }
 
-        $output[$i] = "</MESSAGE> \r\n";
+        $output[$i] = "";
 
         if(!$this->_logging("Complete.")) return FALSE;
 
@@ -677,7 +677,7 @@ class POP3 {
         // Some Server send the STAT string is finished by "." (+OK 3 52422.)
         // - "Yahoo Server"
         $lastdigit = substr($response,-1);
-        if(!ereg("(0-9)",$lastdigit)){
+        if(!preg_match("/(0-9)/i",$lastdigit)){
             $response = substr($response,0,strlen($response)-1);
         }
         unset($lastdigit);
@@ -1029,16 +1029,10 @@ class POP3 {
         return $buffer;
     }
 
-    /*
-      Function _putline()
-      Access: Private
-    */
-    function _putline($string)
-    {
+    function _putline( $string ) {
         $line = "";
         $line = $string."\r\n";
-        if(!fwrite($this->socket , $line , strlen($line)))
-        {
+        if ( ! $this->socket || ! fwrite( $this->socket , $line , strlen( $line ) ) ) {
             $this->error = "POP3 _putline() - Error while send \" $string \". -- Connection closed.";
             $this->_cleanup();
             return FALSE;
@@ -1052,36 +1046,36 @@ class POP3 {
     */
     function _parse_banner ( &$server_text )
     {
-	$outside = true;
-	$banner = "";
-	$length = strlen($server_text);
-	for($count = 0; $count < $length; $count++)
-	{
-		$digit = substr($server_text,$count,1);
-		if($digit != "")
-		{
-			if( (!$outside) and ($digit != '<') and ($digit != '>') )
-			{
-				$banner .= $digit;
-				continue;
-			}
-			if ($digit == '<')
-			{
-				$outside = false;
-			}
-			elseif ($digit == '>')
-			{
-				$outside = true;
-			}
-		}
-	}
-	$banner = trim($banner);
+    $outside = true;
+    $banner = "";
+    $length = strlen($server_text);
+    for($count = 0; $count < $length; $count++)
+    {
+        $digit = substr($server_text,$count,1);
+        if($digit != "")
+        {
+            if( (!$outside) and ($digit != '<') and ($digit != '>') )
+            {
+                $banner .= $digit;
+                continue;
+            }
+            if ($digit == '<')
+            {
+                $outside = false;
+            }
+            elseif ($digit == '>')
+            {
+                $outside = true;
+            }
+        }
+    }
+    $banner = trim($banner);
         if(strlen($banner) != 0 )
         {
             return "<". $banner .">";
         }
         return;
-	}
+    }
 
     /*
       Funktion save2mysql($message,$mysql_socket,$dir_table = "inbox",$msg_table = "messages",$read = "0")
@@ -1129,64 +1123,64 @@ class POP3 {
                 $i++;
             }
 
-            if(eregi("Message-ID",$message[$i])){
+            if(preg_match("/Message-ID/i",$message[$i])){
                 $header["message_id"] = trim($message[$i]);
             }
-            if(eregi("Subject",$message[$i])){
+            if(preg_match("/Subject/i",$message[$i])){
                 $header["subject"] = trim($message[$i]);
             }
             $to = substr($message[$i],0,2);
-            if(eregi("TO",$to)){
+            if(preg_match("/TO/i",$to)){
                 $header["to"] = trim($message[$i]);
             }
 
-            if(eregi("CC",$to)){
+            if(preg_match("/CC/i",$to)){
                 $header["cc"] = trim($message[$i]);
             }
             unset($to);
-            if(eregi("BCC",$message[$i])){
+            if(preg_match("/BCC/i",$message[$i])){
                 $header["bcc"] = trim($message[$i]);
             }
-            if(eregi("FROM",$message[$i])){
+            if(preg_match("/FROM/i",$message[$i])){
                 $header["from"] = trim($message[$i]);
             }
-            if(eregi("DATE",$message[$i])){
+            if(preg_match("/DATE/i",$message[$i])){
                 $header["date"] = trim($message[$i]);
             }
-            if(eregi("Content-Type",$message[$i])){
+            if(preg_match("/Content-Type/i",$message[$i])){
                 $header["content_type"] = trim($message[$i]);
             }
-            if(eregi("Content-Transfer-Encoding",$message[$i])){
+            if(preg_match("/Content-Transfer-Encoding/i",$message[$i])){
                 $header["content_encode"] = trim($message[$i]);
             }
-            if(eregi("MIME-Version",$message[$i])){
+            if(preg_match("/MIME-Version/i",$message[$i])){
                 $header["mime_version"] = trim($message[$i]);
             }
-            if(eregi("Reply-To",substr($message[$i],0,8))){
+            if(preg_match("/Reply-To/i",substr($message[$i],0,8))){
                 $header["reply_to"] = trim($message[$i]);
             }
-            if(eregi("X-Mailer",$message[$i])){
+            if(preg_match("/X-Mailer/i",$message[$i])){
                 $header["x_mailer"] = trim($message[$i]);
             }
-            if(eregi("X-Priority",$message[$i])){
+            if(preg_match("/X-Priority/i",$message[$i])){
                 $header["x_priority"] = substr(trim($message[$i]),-1);
             }
-            if(eregi("Sender",$message[$i])){
+            if(preg_match("/Sender/i",$message[$i])){
                 $header["sender"] = trim($message[$i]);
             }
-            if(eregi("Mail-Followup-To",$message[$i])){
+            if(preg_match("/Mail-Followup-To/i",$message[$i])){
                 $header["mail_followup_to"] = trim($message[$i]);
             }
-            if(eregi("Mail-Reply-To",$message[$i])){
+            if(preg_match("/Mail-Reply-To/i",$message[$i])){
                 $header["mail_reply_to"] = trim($message[$i]);
             }
-            if(eregi("Return-Receipt-To",$message[$i])){
+            if(preg_match("/Return-Receipt-To/i",$message[$i])){
                 $header["return_receipt_to"] = trim($message[$i]);
             }
-            if(eregi("Disposition-Notifaction-To",$message[$i])){
+            if(preg_match("/Disposition-Notifaction-To/i",$message[$i])){
                 $header["disposition_notifaction_to"] = trim($message[$i]);
             }
-            if(eregi("Received",$message[$i])){
+            if(preg_match("/Received/i",$message[$i])){
                 if(isset($header["received"])){
                     $header["received"] .= " <next> ";
                     $header["received"] .= trim($message[$i]);
