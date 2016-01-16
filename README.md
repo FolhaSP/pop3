@@ -24,7 +24,8 @@ Now all mailservers support ASOP.
 
 ## Authors
 
-Code - Steffen Stollfuﬂ
+Code - Steffen Stollfu√ü
+
 Readme - Urb LeJeune
 
 ## License
