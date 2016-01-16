@@ -1,7 +1,13 @@
 {
     "name": "Webysther/pop3",
     "description": "POP3 Client",
+    "autoload": {
+    	"classmap": ["src/"]
+    },
     "suggest": {
     	"phpclasses/pop3": ">=1.17"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.8.19"
     }
 }

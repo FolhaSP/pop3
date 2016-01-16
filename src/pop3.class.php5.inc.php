@@ -1,9 +1,12 @@
 <?php
+
+namespace php5;
+
 /**
  * POP3 Class
- * 
+ *
  * This class provide access to a pop3 server through the pop3 protocol
- *  
+ *
  * @need: >=php-5.2.x
  * @author: j0inty.sL
  * @email: bestmischmaker@web.de
@@ -18,7 +21,7 @@ final class POP3_Exception extends Exception
 	/**
 	 * @param string $strErrMessage
 	 * @param integer $intErrCode
-	 * 
+	 *
 	 * @return POP3_Exception
 	 */
 	function __construct( $strErrMessage, $intErrCode )
@@ -28,24 +31,24 @@ final class POP3_Exception extends Exception
             case POP3::ERR_NOT_IMPLEMENTS:
                 if( empty($strErrMessage) ) $strErrMessage = "This function isn't implements at time.";
             break;
-            
+
             case POP3::ERR_SOCKETS:
                $strErrMessage = "Sockets Error: (". socket_last_error() .") -- ". socket_strerror(socket_last_error());
             break;
-            
+
             case POP3::ERR_STREAM:
             case POP3::ERR_LOG:
             	$aError = error_get_last();
             	$strErrMessage = "Stream Error: (". $aError["type"] .") -- ". $aError["message"];
             break;
         }
-	    parent::__construct($strErrMessage, $intErrCode);	
+	    parent::__construct($strErrMessage, $intErrCode);
 	}
-	
-	
+
+
 	/**
 	 * Store the Exception string to a given file
-	 * 
+	 *
 	 * @param string $strLogFile  logfile name with path
 	 */
 	public function saveToFile($strLogFile)
@@ -68,7 +71,7 @@ final class POP3_Exception extends Exception
 	{
 		return __CLASS__ ." [". $this->getCode() ."] -- ". $this->getMessage() ." in file ". $this->getFile() ." at line ". $this->getLine(). PHP_EOL ."Trace: ". $this->getTraceAsString() .PHP_EOL;
 	}
-    
+
 }
 
 class POP3
@@ -81,12 +84,12 @@ class POP3
     const ERR_INVALID_STATE = 5;
     const ERR_STREAM = 6;
 	const ERR_SEND_CMD = 7;
-	
+
 
     const STATE_DISCONNECT = 100;
     const STATE_AUTHORIZATION = 101;
     const STATE_TRANSACTION = 102;
-    
+
     /*
     const PROTOCOL_TCP = 1;
     const PROTOCOL_TLS = 2;
@@ -110,20 +113,20 @@ class POP3
     private $intCurState = self::STATE_DISCONNECT;
     private $strAPOPBanner = NULL;
 	private $bAPOPAutoDetect;
-	
+
 	private $strVersion = "0.7.2-beta";
-    
+
 
     /*
      * Constructor
      *
      * @param NULL|string $strLogFile  Path to a log file or NULL for no log
      * @param bool $bAPOPAutoDetect  APOP Auto Dection on|off
-     * @param bool $bHideUsernameAtLog  Does the Username should hide at the log file 
+     * @param bool $bHideUsernameAtLog  Does the Username should hide at the log file
      * @param $strEncryption (tcp|ssl|sslv2|sslv3|tls) [depend on your PHP configuration]
      * @param bool $bUseSockets  Use the socket extension (default = TRUE) But it check is the extension_loaded, too
      *             !!! Only needed by them, who have the sockets extension loaded, but want use the stream functions !!!
-     * 
+     *
      * @throw POP3_Exception
      */
 	public function __construct( $strLogFile = NULL, $bAPOPAutoDetect = TRUE, $bHideUsernameAtLog = TRUE, $strEncryption = TRUE, $bUseSockets = TRUE )
@@ -136,7 +139,7 @@ class POP3
         {
             throw new POP3_Exception("Invalid Hide Username at log file parameter given.", self::ERR_PARAMETER);
         }
-        
+
         if( !preg_match("/^(tcp|ssl|sslv2|sslv3|tls)+$/", $strEncryption) )
         {
         	throw new POP3_Exception("Invalid encryption parameter given. (tcp|ssl|sslv2|sslv3|tls) [depend on your PHP configuration]", self::ERR_PARAMETER);
@@ -145,7 +148,7 @@ class POP3
         {
         	throw new POP3_Exception("Encryption with Sockets Extension is not implemented now. Use \$UseSocket=false for that.",self::ERR_NOT_IMPLEMENTS );
         }
-                     
+
 		// Activate logging if needed
 		if( !is_null($strLogFile) )
 		{
@@ -199,7 +202,7 @@ class POP3
             throw new POP3_Exception("Invalid host parameter given", self::ERR_PARAMETER);
         }
 
-        if( !is_int($intPort) || $intPort < 1 || $intPort > 65535 ) 
+        if( !is_int($intPort) || $intPort < 1 || $intPort > 65535 )
         {
             throw new POP3_Exception("Invalid port parameter given", self::ERR_PARAMETER);
         }
@@ -213,10 +216,10 @@ class POP3
         {
             throw new POP3_Exception("Invalid IPv6 parameter given", self::ERR_PARAMETER);
         }
-        
+
         $this->strHostname = $strHostname;
-        $this->intPort = $intPort; 
-        
+        $this->intPort = $intPort;
+
         /// Connecting ///
 		if( $this->bUseSockets )
 		{
@@ -227,7 +230,7 @@ class POP3
             $this->log( ($bIPv6) ? "AF_INET6" : "AF_INET" ."-TCP Socket created (using sockets extension)");
 
 			$this->setSockTimeout($arrConnectionTimeout);
-			
+
             if( !@socket_connect($this->resSocket, $this->strHostname, $this->intPort)
             	|| !@socket_getpeername($this->resSocket,$this->strIPAdress) )
 			{
@@ -241,13 +244,13 @@ class POP3
 			{
 				throw new POP3_Exception( "[". $intErrno."] -- ". $strError, self::ERR_STREAM );
 			}
-			
+
 			$this->setSockTimeout($arrConnectionTimeout);
             $this->strIPAdress = @gethostbyname($this->strHostname);
 		}
         $this->bSocketConnected = TRUE;
         $this->log("Connected to ". $this->strProtocol . "://". $this->strIPAdress .":". $this->intPort ." [". $this->strHostname ."]");
-        
+
         // Get the first response with, if APOP support avalible, the apop banner.
         $strBuffer = $this->recvString();
         $this->log($strBuffer);
@@ -357,7 +360,7 @@ class POP3
 	public function getStat()
 	{
 		$this->checkState(self::STATE_TRANSACTION);
-        return $this->sendCmd("STAT");    
+        return $this->sendCmd("STAT");
 	}
     /**
      * Recieve a raw message.
@@ -372,7 +375,7 @@ class POP3
 		$this->checkState(self::STATE_TRANSACTION);
         $this->checkMsgNum($intMsgNum);
 		$this->sendCmd("RETR ". $intMsgNum );
-		return $this->recvToPoint(); 
+		return $this->recvToPoint();
     }
     /**
      * Get a list with message number and the size in bytes of a message.
@@ -387,7 +390,7 @@ class POP3
 		return $this->recvToPoint();
     }
     /**
-     * Get a list with message number and the unique id on the pop3 server. 
+     * Get a list with message number and the unique id on the pop3 server.
      *
      * @return string  Unique ID List
      * @throw POP3_Exception
@@ -451,14 +454,14 @@ class POP3
      *
      * $result = array( "count" => "Count of messages in your mail drop",
      *                  "octets" => "Size of your mail drop in bytes",
-     *                  
+     *
      *                  "msg_number" => array("uid" => "The unique id string of the message on the pop3 server",
      *                                        "octets" => "The size of the message in bytes"
      *                                  ),
      *                  "and soon"
      *          );
      *
-     * @return array  
+     * @return array
      * @throw POP3_Exception
      */
 	public function getOfficeStatus()
@@ -475,10 +478,10 @@ class POP3
         {
 		    $strUIDLs = $this->getUidl();
 		    $strLISTs = $this->getList();
-                    
+
             $arrUIDLs = explode("\r\n",trim($strUIDLs));
 		    $arrLISTs = explode("\r\n",trim($strLISTs));
-		
+
             for($i=1; $i<=$arrRes["count"]; $i++)
 		    {
                 list(,$intUIDL) = explode(" ", trim($arrUIDLs[$i-1]));
@@ -540,14 +543,14 @@ class POP3
     }
     /**
      * Return the version of the pop3.class.inc
-     * 
+     *
      * @return string $strVersion  version string for this class
      */
     public function getVersion()
     {
     	return $this->strVersion;
     }
-    
+
     /////////////////////////////////////////////////////////////////////////////
     /////////////////////// Private functions ///////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////
@@ -561,13 +564,13 @@ class POP3
      */
     private function checkState( $intNeededState )
     {
-        if ( $this->intCurState != $intNeededState) 
+        if ( $this->intCurState != $intNeededState)
             throw new POP3_Exception("Invalid State !!! Please check your Code !!!", self::ERR_INVALID_STATE);
     }
-    
+
 	/**
 	 * @param &integer $intMsgNum
-	 * 
+	 *
 	 * @throws POP3_Exception
 	 */
     private function checkMsgNum( &$intMsgNum )
@@ -582,7 +585,7 @@ class POP3
      * Will append the network lineend "\r\n".
      *
      * @param string strCmd  The string that should send to the pop3 server
-     * 
+     *
      * @return void
      * @throws POP3_Exception
      */
@@ -593,7 +596,7 @@ class POP3
         {
             if( @socket_send($this->resSocket, $strCmd, strlen($strCmd), 0) === FALSE )
             {
-                throw new POP3_Exception("", self::ERR_SOCKETS);                
+                throw new POP3_Exception("", self::ERR_SOCKETS);
             }
         }
         else
@@ -670,9 +673,9 @@ class POP3
 		return $intReadBytes;
     }
     /**
-     * 
+     *
      * @param integer $intBufferSize
-     * 
+     *
      * @return string $strBuffer Return the recieved String ended by "\r\n"
      * @throw POP3_Exception
      */
@@ -705,7 +708,7 @@ class POP3
 
     /**
      * This function will get a complete list/message until the finally point was sended.
-     * 
+     *
      * @return string list/message
      * @throw POP3_Exception
      */
@@ -723,7 +726,7 @@ class POP3
 		}
 		return $strRes;
 	}
-   
+
     /**
      * Set the connection timeouts for a socket
      *
@@ -758,7 +761,7 @@ class POP3
     }
     /**
      * Parse the needed apop banner if given
-     * 
+     *
      * @return void
      */
     private function parseBanner( $strBuffer )
@@ -782,8 +785,8 @@ class POP3
             }
         }
     }
-    
-    
+
+
     /**
      * // LOGGING FUNCTIONS
      */
@@ -820,8 +823,8 @@ class POP3
 		}
 	}
     // }}}
-    
-    
+
+
 }
 // }}}
 
