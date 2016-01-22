@@ -1,5 +1,5 @@
 {
-    "name": "FolhaSP/pop3",
+    "name": "folha/pop3",
     "description": "POP3 Client",
     "autoload": {
     	"classmap": ["src/"]
